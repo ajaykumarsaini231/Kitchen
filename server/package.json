@@ -6,6 +6,7 @@
   "main": "src/index.js",
   "scripts": {
     "start": "node src/index.js",
+    "build": "echo \"no build step needed for the API server\"",
     "dev": "node --watch src/index.js",
     "seed": "node src/seed.js",
     "toggle": "node src/toggleCli.js",
