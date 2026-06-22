@@ -1,0 +1,59 @@
+# Full-stack stack: MongoDB (replica set) + API + static client.
+#   docker compose up --build
+#   client -> http://localhost:8080   api -> http://localhost:4000
+#
+# NOTE: untested in this environment (Docker not installed here). The mongo-init
+# one-shot service initialises the single-node replica set so change streams work.
+services:
+  mongo:
+    image: mongo:7
+    container_name: dish-mongo
+    command: ['--replSet', 'rs0', '--bind_ip_all']
+    ports:
+      - '27017:27017'
+    volumes:
+      - mongo-data:/data/db
+    healthcheck:
+      test: ['CMD', 'mongosh', '--quiet', '--eval', "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  mongo-init:
+    image: mongo:7
+    depends_on:
+      mongo:
+        condition: service_healthy
+    restart: 'no'
+    entrypoint:
+      - bash
+      - -c
+      - >
+        mongosh --host mongo --quiet --eval
+        'try { rs.status() } catch (e) { rs.initiate({_id:"rs0", members:[{_id:0, host:"mongo:27017"}]}) }'
+
+  server:
+    build: ./server
+    depends_on:
+      mongo:
+        condition: service_healthy
+    environment:
+      - MONGODB_URI=mongodb://mongo:27017/dishdb?replicaSet=rs0
+      - CLIENT_ORIGIN=http://localhost:8080
+      - JWT_SECRET=change-me-in-prod
+      - NODE_ENV=production
+    ports:
+      - '4000:4000'
+
+  client:
+    build:
+      context: ./client
+      args:
+        VITE_API_URL: http://localhost:4000
+    depends_on:
+      - server
+    ports:
+      - '8080:80'
+
+volumes:
+  mongo-data:
