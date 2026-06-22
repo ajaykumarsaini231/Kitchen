@@ -4,6 +4,8 @@ The customer-facing restaurant website (Next.js 14, App Router). Shows only **pu
 dishes, lets customers **order food**, **book a table**, and **check out** (with a demo
 payment), and updates **live** when staff publish/unpublish from the CMS.
 
+> 🔗 **Live:** https://web-kitchen-sigma.vercel.app
+
 ## Description
 This is the public storefront. It reads from the same API server (`/server`) as the CMS,
 so the menu is always in sync. Pages are server-rendered with ISR for speed + SEO, and a

@@ -4,6 +4,9 @@ Node.js + Express + MongoDB (Mongoose) + Socket.IO backend powering the **CMS da
 (`/client`) and the **public menu website** (`/web`). Provides the menu, JWT auth with
 roles, ordering, table reservations, and **real-time updates** via MongoDB change streams.
 
+> 🔗 **Live:** https://server-kitchen.vercel.app · API docs: `/api/docs`
+> _(Vercel is serverless — for full WebSocket/real-time in production host on Render/Railway; see Deployment below.)_
+
 ## Description
 This is the single source of truth for the whole system. It exposes a REST API and a
 WebSocket channel. Any change to a dish (from the CMS **or** directly in the database) is

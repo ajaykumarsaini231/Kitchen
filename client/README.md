@@ -4,6 +4,8 @@ A React + Vite admin dashboard for managing the restaurant menu. Staff log in, s
 dish, **publish/unpublish** them, **add new products**, and watch changes appear in
 **real time** — including edits made directly in the database.
 
+> 🔗 **Live:** https://cms-kitchen.vercel.app
+
 ## Description
 This is the private management side of the system. It talks to the API server (`/server`)
 over HTTP (with a JWT) and over a Socket.IO connection for live updates. The public menu

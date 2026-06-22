@@ -1,151 +1,114 @@
-# 🍽️ Dish Dashboard — Full Stack (METNMAT)
+# 🍽️ METNMAT Kitchen — Full-Stack Restaurant System
 
-Manage and display dish information: a MongoDB database, an Express + Socket.IO API
-with JWT auth, and a branded React dashboard that toggles published status **and
-reflects real-time changes made directly in the database** (the bonus).
+A real-time restaurant platform in **three apps sharing one database**: a public menu &
+ordering website, an admin CMS, and an Express + Socket.IO API.
 
-See [IDEATION.md](IDEATION.md) for the design reasoning.
+## 🔗 Live (Vercel)
+| App | What it is | URL |
+|-----|------------|-----|
+| 🌐 **Public menu** (`web/`) | Customer site — menu, cart, checkout, table booking | **https://web-kitchen-sigma.vercel.app** |
+| 🛠️ **Admin CMS** (`client/`) | Staff dashboard — publish, add products | **https://cms-kitchen.vercel.app** |
+| ⚙️ **API server** (`server/`) | REST + WebSocket backend | **https://server-kitchen.vercel.app** |
 
-## Architecture
+> ⚠️ **Production note:** Vercel is **serverless**, so the API's persistent **WebSocket /
+> MongoDB change streams don't stay alive** there. For full real-time in production, host
+> `server/` on **Render / Railway / Fly.io** and point both frontends at it. On Vercel the
+> REST API works but live updates fall back/disconnect. See per-app READMEs.
 
-```
-React (Vite)  --HTTP(+JWT)-->  Express API  --writes-->  MongoDB
-     ^                              |                       |
-     |                              | change stream / poll  |
-     +-------- Socket.IO -----------+ <---------------------+
-```
+---
 
-## Features
+## What it does
+- **Customers** browse a 128-dish menu, add to cart, check out (cash or demo card), and book a table.
+- **Staff** log into the CMS to publish/unpublish dishes and add new products.
+- **Everything is live** — a change in the CMS (or directly in the DB) instantly updates the public menu via WebSockets.
 
-**Core (assignment)**
-- Schema: `dishId`, `dishName`, `imageUrl`, `isPublished`; seeded from JSON.
-- `GET /api/dishes` (public) and an **atomic** publish toggle.
-- React dashboard with optimistic toggle + rollback.
-- **Bonus real-time:** MongoDB change streams broadcast every change (including
-  direct DB edits) over WebSocket; automatic polling fallback if no replica set.
+---
 
-**Production add-ons**
-- 🔐 **Auth:** JWT login with `admin` / `viewer` roles. Mutations are admin-only;
-  `GET` stays public. Dashboard is gated behind login; viewers are read-only.
-- 🛡️ **Security:** `helmet`, rate limiting, `compression`, Zod validation, consistent
-  `{ error, code }` envelope, CORS allowlist.
-- 📊 **Observability:** structured `pino` logging, `/api/health` + `/api/ready`.
-- 🎨 **UX:** METNMAT dark-first theme (OKLCH, Space Grotesk/Inter/JetBrains Mono),
-  debounced search, All/Published/Unpublished filters, `sonner` toasts, loading
-  skeletons, real-time update flash, light/dark toggle.
-- 🧪 **Tests:** Vitest + supertest over an in-memory MongoDB (`npm test`).
-- 🔁 **API versioning:** every route also available under `/api/v1/*`.
-
-## Prerequisites
-- Node.js 18+
-- MongoDB is **optional for local dev** — if `MONGODB_URI` is unset, the server boots
-  an **in-memory replica set** automatically (no Docker / install needed) and auto-seeds.
-  Set `MONGODB_URI` (e.g. Atlas) for persistent data.
-
-## Setup
-
-### Backend
-```bash
-cd server
-cp .env.example .env      # optional; defaults work out of the box
-npm install
-npm run dev               # http://localhost:4000  (auto-seeds dishes + users)
+## 🧭 Architecture
+```mermaid
+flowchart LR
+  Customer([👤 Customer]) -->|browse / order| Web["🌐 web/ — Next.js<br/>web-kitchen-sigma.vercel.app"]
+  Admin([Staff]) -->|manage menu| CMS["client/ — React + Vite<br/>cms-kitchen.vercel.app"]
+  Web <-->|REST + WebSocket| API["⚙️ server/ — Express + Socket.IO<br/>server-kitchen.vercel.app"]
+  CMS <-->|REST + WebSocket| API
+  API -->|Mongoose| DB[("🍃 MongoDB Atlas")]
+  DB -. change streams .-> API
+  API -. dish:updated / order:new .-> Web
+  API -. dish:updated / order:new .-> CMS
 ```
 
-### Frontend
-```bash
-cd client
-cp .env.example .env
-npm install
-npm run dev               # http://localhost:5173
+## 🔄 Real-time sync flow
+```mermaid
+sequenceDiagram
+  participant A as Admin (CMS)
+  participant S as API + Socket.IO
+  participant DB as MongoDB
+  participant C as Customer (Web)
+  A->>S: PATCH /api/dishes/:id/toggle
+  S->>DB: update isPublished
+  DB-->>S: change stream event
+  S-->>C: emit "dish:updated"
+  S-->>A: emit "dish:updated"
+  C->>C: menu refreshes instantly (no reload)
 ```
 
-### Demo accounts (seeded automatically)
-| Role | Email | Password | Can toggle? |
-|------|-------|----------|-------------|
-| admin | `admin@metnmat.com` | `admin123` | ✅ |
-| viewer | `viewer@metnmat.com` | `viewer123` | ❌ (read-only) |
+## 🛒 Order flow
+```mermaid
+sequenceDiagram
+  participant C as Customer (Web)
+  participant S as API
+  participant DB as MongoDB
+  C->>C: Add to cart → Checkout
+  C->>S: POST /api/orders (items, customer, payment)
+  S->>DB: re-price server-side, save Order
+  S-->>S: emit "order:new" (to admins)
+  S-->>C: 201 { orderNumber, total }
+  C->>C: Order confirmation page
+```
+> Diagrams are [Mermaid](https://mermaid.js.org/) — GitHub renders them automatically, no external tool needed.
 
-> Change these via `ADMIN_*` / `VIEWER_*` env vars before deploying.
+---
 
-## Trying the real-time bonus (out-of-band change)
-With the dashboard open, change a dish **without using the UI** — three ways:
+## 📦 The three apps
+| Folder | Stack | README |
+|--------|-------|--------|
+| `server/` | Node, Express, MongoDB, Socket.IO, JWT, Zod, Swagger | [server/README.md](server/README.md) |
+| `client/` | React 18, Vite, socket.io-client | [client/README.md](client/README.md) |
+| `web/` | Next.js 14 (App Router), socket.io-client | [web/README.md](web/README.md) |
 
-1. **CLI** (needs `MONGODB_URI` pointing at the same DB the server uses):
-   ```bash
-   cd server
-   npm run toggle -- 1
-   ```
-2. **In-app demo button:** click **⚡ Simulate backend change** (calls a dedicated
-   server endpoint that writes straight to the DB).
-3. **Directly in MongoDB Atlas / Compass:** edit a dish's `isPublished`.
+## 🚀 Quick start (local)
+Run each in its own terminal (PowerShell-friendly — no `&&`):
+```powershell
+cd server ; node src\index.js     # API  → http://localhost:4000  (auto-seeds 128 dishes + users)
+cd client ; npm run dev            # CMS  → http://localhost:5173
+cd web ; npm run dev               # Menu → http://localhost:3000
+```
+> No MongoDB? Leave `server/.env`'s `MONGODB_URI` empty — the server auto-starts an
+> in-memory MongoDB and seeds everything.
 
-In all cases the dashboard updates **instantly** with a brief highlight — proof the
-change stream → WebSocket path works regardless of where the change originated.
+### Demo accounts
+| Role | Email | Password |
+|------|-------|----------|
+| admin | `admin@metnmat.com` | `admin123` |
+| viewer | `viewer@metnmat.com` | `viewer123` |
 
-## Tests
-```bash
-cd server
-npm test        # auth, roles, validation, public GET, toggle, simulate, 404
+## ☁️ Production wiring (Vercel)
+After deploying, set these env vars so the apps talk to each other:
+- **web-kitchen** → `NEXT_PUBLIC_API_URL` & `NEXT_PUBLIC_SOCKET_URL` = API URL, `NEXT_PUBLIC_SITE_URL` = `https://web-kitchen-sigma.vercel.app`
+- **cms-kitchen** → `VITE_API_URL` = API URL
+- **server-kitchen** → `MONGODB_URI` (Atlas, allowlist `0.0.0.0/0`), `JWT_SECRET`, and `CLIENT_ORIGIN` = `https://web-kitchen-sigma.vercel.app,https://cms-kitchen.vercel.app`
+
+## 🗂️ Repo structure
+```
+.
+├─ server/   # Express + MongoDB + Socket.IO API (auth, orders, reservations, realtime)
+├─ client/   # React + Vite admin CMS (publish, add product)
+├─ web/      # Next.js public menu (cart, checkout, booking, SEO)
+├─ IDEATION.md
+└─ docker-compose.yml
 ```
 
-## API
-| Method | Path | Auth | Description |
-|--------|------|------|-------------|
-| GET | `/api/dishes` | public | List dishes. Opt-in `?page&limit&sort&order&published&q` |
-| POST | `/api/dishes` | admin | Create a dish |
-| PATCH | `/api/dishes/:dishId/toggle` | admin | Flip `isPublished` |
-| PATCH | `/api/dishes/:dishId` | admin | Set `isPublished` (body `{isPublished}`) |
-| PUT | `/api/dishes/:dishId` | admin | Update name/image/published |
-| DELETE | `/api/dishes/:dishId` | admin | Soft-delete |
-| POST | `/api/dishes/:dishId/simulate-external` | public | Demo out-of-band flip |
-| POST | `/api/auth/login` | public | `{ token, user }` |
-| GET | `/api/auth/me` | bearer | Current user |
-| GET | `/api/health`, `/api/ready` | public | Probes |
-
-All routes are also mounted under `/api/v1/*`.
-**Interactive API docs (Swagger UI):** http://localhost:4000/api/docs
-
-## Lint & format
-```bash
-cd server
-npm run lint      # eslint
-npm run format    # prettier --write
-```
-
-## Docker (full stack)
-> Untested in the author's environment (no Docker installed) but provided ready-to-run.
-```bash
-docker compose up --build
-# client -> http://localhost:8080   api -> http://localhost:4000
-```
-The `mongo-init` service initialises the single-node replica set so change streams work.
-
-## CI
-[.github/workflows/ci.yml](.github/workflows/ci.yml) runs on push/PR: server `lint` + `test`,
-and a client production `build`.
-
-## Deployment
-- **DB:** MongoDB Atlas (replica set → change streams work out of the box). Set `MONGODB_URI`.
-- **Server:** Render / Railway / Fly. Set env vars (`MONGODB_URI`, `JWT_SECRET`, `CLIENT_ORIGIN`,
-  `ADMIN_*`). Start command `npm start`; health check `/api/health`.
-- **Client:** Vercel / Netlify. Build `npm run build`, output `dist`, env `VITE_API_URL`
-  = your deployed API URL.
-
-## Project structure
-```
-server/src/
-  app.js          # express app (middleware, routes, error envelope) — importable by tests
-  index.js        # bootstrap: DB + seed + socket + realtime + listen
-  auth.js         # JWT sign/verify + requireAuth / requireRole
-  validate.js     # Zod validation middleware
-  logger.js       # pino
-  realtime.js     # change stream + polling fallback
-  models/         # Dish, User
-  routes/         # dishes, auth
-  seedData.js seedUsers.js memoryDb.js toggleCli.js
-server/test/      # vitest + supertest
-client/src/
-  App.jsx api.js auth.js socket.js index.css
-  components/      # DishCard, Skeleton, Login
-```
+## Tech highlights
+JWT auth + roles · Zod validation · Swagger docs (`/api/docs`) · MongoDB change streams →
+Socket.IO · in-memory DB fallback · Vitest tests · METNMAT dark theme (OKLCH, Space
+Grotesk / Inter / JetBrains Mono) · `next/image` + SEO (JSON-LD, sitemap, robots).
