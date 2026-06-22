@@ -57,9 +57,10 @@ async function main() {
   // starts and the app keeps working for local dev/demos.
   let uri = config.MONGODB_URI;
   let usingMemory = false;
+  const isProd = process.env.NODE_ENV === 'production';
 
   if (!uri) {
-    logger.info('no MONGODB_URI set — starting in-memory MongoDB replica set');
+    logger.info('no MONGODB_URI set — starting in-memory MongoDB (dev only)');
     uri = await startMemoryMongo();
     usingMemory = true;
   }
@@ -67,11 +68,18 @@ async function main() {
   try {
     await connectDB(uri);
   } catch (err) {
-    if (usingMemory) throw err;
-    logger.warn(
-      { err: err.message },
-      'external MongoDB unreachable — falling back to in-memory MongoDB'
-    );
+    // The in-memory fallback is for LOCAL DEV only — it cannot run on most
+    // production hosts (e.g. Alpine Linux has no MongoDB build). In production
+    // a reachable MONGODB_URI is required.
+    if (usingMemory || isProd) {
+      logger.error(
+        { err: err.message },
+        'Cannot reach MongoDB. In production set a reachable MONGODB_URI and ' +
+          'allow this host in Atlas → Network Access → 0.0.0.0/0 (and resume the cluster if paused).'
+      );
+      throw err;
+    }
+    logger.warn({ err: err.message }, 'external MongoDB unreachable — falling back to in-memory (dev)');
     await mongoose.disconnect().catch(() => {});
     uri = await startMemoryMongo();
     usingMemory = true;
