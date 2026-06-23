@@ -57,8 +57,8 @@ The CMS is a static SPA — perfect for Vercel.
 1. Vercel → **New Project** → import the repo.
 2. **Root Directory:** `client`
 3. Framework preset: **Vite** (Build `npm run build`, Output `dist`).
-4. **Environment Variable:** `VITE_API_URL` = your deployed API URL (the Render/Railway
-   server, e.g. `https://metnmat-api.onrender.com`).
+4. **Environment Variable:** `VITE_API_URL` = the deployed API URL
+   (`https://kitchen-oayb.onrender.com`).
 5. Deploy. Add the resulting Vercel URL to the server's `CLIENT_ORIGIN` allowlist.
 
 > SPA routing is handled by Vite's single `index.html`; no extra rewrites needed for this

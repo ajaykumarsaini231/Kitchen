@@ -70,9 +70,9 @@ Next.js is Vercel's native framework — ideal here.
 2. **Root Directory:** `web`
 3. Framework preset: **Next.js** (auto-detected).
 4. **Environment Variables:**
-   - `NEXT_PUBLIC_API_URL` = deployed API URL (e.g. `https://metnmat-api.onrender.com`)
-   - `NEXT_PUBLIC_SOCKET_URL` = same as above
-   - `NEXT_PUBLIC_SITE_URL` = the site's own Vercel URL (e.g. `https://metnmat-kitchen.vercel.app`)
+   - `NEXT_PUBLIC_API_URL` = `https://kitchen-oayb.onrender.com`
+   - `NEXT_PUBLIC_SOCKET_URL` = `https://kitchen-oayb.onrender.com`
+   - `NEXT_PUBLIC_SITE_URL` = `https://web-kitchen-sigma.vercel.app`
 5. Deploy → live at `https://<project>.vercel.app`.
 6. Add that URL to the **server's `CLIENT_ORIGIN`** allowlist so the browser's
    Socket.IO / fetch calls pass CORS.

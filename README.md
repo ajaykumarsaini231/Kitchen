@@ -3,17 +3,17 @@
 A real-time restaurant platform in **three apps sharing one database**: a public menu &
 ordering website, an admin CMS, and an Express + Socket.IO API.
 
-## 🔗 Live (Vercel)
+## 🔗 Live
 | App | What it is | URL |
 |-----|------------|-----|
 | 🌐 **Public menu** (`web/`) | Customer site — menu, cart, checkout, table booking | **https://web-kitchen-sigma.vercel.app** |
 | 🛠️ **Admin CMS** (`client/`) | Staff dashboard — publish, add products | **https://cms-kitchen.vercel.app** |
-| ⚙️ **API server** (`server/`) | REST + WebSocket backend | **https://server-kitchen.vercel.app** |
+| ⚙️ **API server** (`server/`) | REST + WebSocket backend (on Render) | **https://kitchen-oayb.onrender.com** |
 
-> ⚠️ **Production note:** Vercel is **serverless**, so the API's persistent **WebSocket /
-> MongoDB change streams don't stay alive** there. For full real-time in production, host
-> `server/` on **Render / Railway / Fly.io** and point both frontends at it. On Vercel the
-> REST API works but live updates fall back/disconnect. See per-app READMEs.
+> ℹ️ **Hosting note:** Frontends run on **Vercel**; the **API runs on Render**
+> (`https://kitchen-oayb.onrender.com`) so its WebSocket + MongoDB change streams stay
+> alive (Vercel serverless can't keep them open). _Render free tier sleeps after ~15 min
+> idle, so the first request can take ~30–50s to wake._
 
 ---
 
@@ -29,7 +29,7 @@ ordering website, an admin CMS, and an Express + Socket.IO API.
 flowchart LR
   Customer([👤 Customer]) -->|browse / order| Web["🌐 web/ — Next.js<br/>web-kitchen-sigma.vercel.app"]
   Admin([Staff]) -->|manage menu| CMS["client/ — React + Vite<br/>cms-kitchen.vercel.app"]
-  Web <-->|REST + WebSocket| API["⚙️ server/ — Express + Socket.IO<br/>server-kitchen.vercel.app"]
+  Web <-->|REST + WebSocket| API["⚙️ server/ — Express + Socket.IO<br/>kitchen-oayb.onrender.com"]
   CMS <-->|REST + WebSocket| API
   API -->|Mongoose| DB[("🍃 MongoDB Atlas")]
   DB -. change streams .-> API
@@ -92,11 +92,11 @@ cd web ; npm run dev               # Menu → http://localhost:3000
 | admin | `admin@metnmat.com` | `admin123` |
 | viewer | `viewer@metnmat.com` | `viewer123` |
 
-## ☁️ Production wiring (Vercel)
-After deploying, set these env vars so the apps talk to each other:
-- **web-kitchen** → `NEXT_PUBLIC_API_URL` & `NEXT_PUBLIC_SOCKET_URL` = API URL, `NEXT_PUBLIC_SITE_URL` = `https://web-kitchen-sigma.vercel.app`
-- **cms-kitchen** → `VITE_API_URL` = API URL
-- **server-kitchen** → `MONGODB_URI` (Atlas, allowlist `0.0.0.0/0`), `JWT_SECRET`, and `CLIENT_ORIGIN` = `https://web-kitchen-sigma.vercel.app,https://cms-kitchen.vercel.app`
+## ☁️ Production wiring
+The apps are wired together with these env vars:
+- **web-kitchen** (Vercel) → `NEXT_PUBLIC_API_URL` & `NEXT_PUBLIC_SOCKET_URL` = `https://kitchen-oayb.onrender.com`, `NEXT_PUBLIC_SITE_URL` = `https://web-kitchen-sigma.vercel.app`
+- **cms-kitchen** (Vercel) → `VITE_API_URL` = `https://kitchen-oayb.onrender.com`
+- **API** (Render) → `MONGODB_URI` (Atlas, Network Access `0.0.0.0/0`), `JWT_SECRET`, and `CLIENT_ORIGIN` = `https://web-kitchen-sigma.vercel.app,https://cms-kitchen.vercel.app`
 
 ## 🗂️ Repo structure
 ```
