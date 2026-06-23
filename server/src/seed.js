@@ -1,8 +1,16 @@
 import 'dotenv/config';
+import dns from 'node:dns';
 import mongoose from 'mongoose';
 import { connectDB } from './db.js';
 import { seedFromFile } from './seedData.js';
 import { startMemoryMongo, stopMemoryMongo } from './memoryDb.js';
+
+// Public DNS first so Atlas SRV lookups work behind strict resolvers.
+try {
+  dns.setServers(['8.8.8.8', '1.1.1.1', ...dns.getServers()]);
+} catch {
+  /* non-fatal */
+}
 
 /**
  * Standalone seeding CLI. Useful when pointing at a persistent MongoDB.

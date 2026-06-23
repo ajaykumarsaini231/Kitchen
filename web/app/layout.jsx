@@ -3,6 +3,7 @@ import './globals.css';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import CartProvider from '../components/CartProvider';
+import KeepAlive from '../components/KeepAlive';
 import { SITE_URL } from '../lib/config';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter', display: 'swap' });
@@ -49,6 +50,7 @@ export default function RootLayout({ children }) {
       <body>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
         <CartProvider>
+          <KeepAlive />
           <Header />
           {children}
           <Footer />
